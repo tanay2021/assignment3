@@ -1,0 +1,17 @@
+# Application foundation
+python-dotenv==1.0.1
+
+# AI and orchestration
+langchain==0.3.12
+langgraph==0.2.38
+openai==1.51.2
+sentence-transformers==3.2.1
+
+# Document processing
+pymupdf==1.25.2
+
+# Vector database
+chromadb==0.5.23
+
+# Testing
+pytest==8.3.3

@@ -1,0 +1,40 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python cache and tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs and runtime output
+logs/*.log
+logs/*.txt
+logs/
+*.log
+
+# Local data stores and generated artifacts
+*.sqlite3
+*.db
+chroma/
+vector_store/
+vectorstores/
+.db
+
+# OS artifacts
+.DS_Store
+Thumbs.db
