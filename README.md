@@ -105,3 +105,7 @@ python run.py
 - This project intentionally avoids RAG, AI business logic, and document intelligence in this foundation stage.
 - The goal is a stable and testable base for future incremental feature work.
 - The dependency set is intentionally small and aligned to the planned architecture.
+
+## Architecture and design documents
+Start with [AGENTS.md](AGENTS.md) (rules for all coding work), then the documents in `docs/`:
+[business_requirements](docs/business_requirements.md) · [poc_scope](docs/poc_scope.md) · [user_journeys](docs/user_journeys.md) · [architecture](docs/architecture.md) · [data_flow](docs/data_flow.md) · [data_contracts](docs/data_contracts.md) · [ai_capability_mapping](docs/ai_capability_mapping.md) · [rag_design](docs/rag_design.md) · [security_responsible_ai](docs/security_responsible_ai.md) · [test_strategy](docs/test_strategy.md) · [demo_data_strategy](docs/demo_data_strategy.md) · [acceptance_criteria](docs/acceptance_criteria.md) · [implementation_roadmap](docs/implementation_roadmap.md) · [architecture_decisions](docs/architecture_decisions.md)
