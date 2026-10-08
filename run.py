@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import argparse
 
-from app.config import load_settings
+from app.bootstrap import initialize_application
 from app.healthcheck import main as healthcheck_main
-from app.logging_config import setup_logging
 
 
 def main() -> None:
@@ -26,9 +25,8 @@ def main() -> None:
     if args.health_check:
         raise SystemExit(healthcheck_main())
 
-    settings = load_settings()
-    logger = setup_logging(settings.log_level)
-    logger.info("Application foundation initialized successfully.")
+    context = initialize_application()
+    context.services.database.close()
     print("Application foundation initialized successfully.")
     print("This stage establishes the engineering foundation.")
     print("AI functionality will be implemented incrementally in subsequent development stages.")

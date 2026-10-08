@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import importlib
 import platform
-from pathlib import Path
 from typing import Any
 
 from app.config import ROOT_DIR, load_settings

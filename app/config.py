@@ -14,10 +14,14 @@ from typing import Mapping
 
 from dotenv import load_dotenv
 
+from src.common.constants import IN_MEMORY_DATABASE
+
 ROOT_DIR = Path(__file__).resolve().parents[1]
 ENV_FILE = ROOT_DIR / ".env"
 
-VALID_ENVIRONMENTS = {"development", "staging", "production", "test"}
+DEFAULT_DATABASE_PATH = "data/loan_poc.sqlite3"
+
+VALID_ENVIRONMENTS ={"development", "staging", "production", "test"}
 VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
 
 
@@ -36,11 +40,23 @@ class Settings:
     app_env: str
     log_level: str
     openai_api_key: str | None = None
+    database_path: str = DEFAULT_DATABASE_PATH
+
+    @property
+    def database_file(self) -> str:
+        """Return the SQLite location, resolving relative paths against the project root."""
+        if self.database_path == IN_MEMORY_DATABASE:
+            return self.database_path
+        path = Path(self.database_path)
+        return str(path if path.is_absolute() else ROOT_DIR / path)
 
     def validate(self) -> None:
         """Raise clear exceptions for invalid runtime config."""
         if not self.app_env:
             raise ValueError("APP_ENV must be set.")
+
+        if not self.database_path.strip():
+            raise ValueError("DATABASE_PATH cannot be empty.")
 
         if self.app_env.lower() not in VALID_ENVIRONMENTS:
             allowed = ", ".join(sorted(VALID_ENVIRONMENTS))
@@ -76,10 +92,13 @@ def load_settings(environ: Mapping[str, str] | None = None) -> Settings:
     log_level = (env.get("LOG_LEVEL") or "INFO").strip().upper()
     openai_api_key = (env.get("OPENAI_API_KEY") or "").strip() or None
 
+    database_path = (env.get("DATABASE_PATH") or "").strip() or DEFAULT_DATABASE_PATH
+
     settings = Settings(
         app_env=app_env,
         log_level=log_level,
         openai_api_key=openai_api_key,
+        database_path=database_path,
     )
     settings.validate()
     return settings
