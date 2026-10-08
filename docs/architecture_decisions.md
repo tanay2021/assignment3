@@ -62,3 +62,25 @@ Format: context, decision, rationale, consequences. Status is Accepted unless st
 2. Which OpenAI model is used for extraction versus narrative (cost/quality)?
 3. Does the demo need a PDF upload screen, or only pre-loaded packages?
 4. Is LangGraph worth its weight for the summary workflow? (decided in Prompt 7)
+
+## ADR-013: Domain models are Pydantic models in `src/domain/`
+- **Context:** Prompt 2 asked for type-safe models and said to prefer Pydantic if already available.
+- **Decision:** Use Pydantic v2 (installed as a dependency of langchain, openai and chromadb) for all contracts in `src/domain/`. Models forbid unknown fields and enforce the invariants from `data_contracts.md` in validators.
+- **Rationale:** No new installation; validation, JSON round-trip and schema generation come for free.
+- **Consequences:** `pydantic` is imported directly but is not listed in `requirements.txt`; it is a transitive pin. Listing it explicitly at the installed version (2.13.5) is recommended and needs approval. `AIResponse` omits confidence until a defined calculation exists.
+
+## ADR-014: Service and persistence foundation (Prompt 2)
+- **Repositories:** `src/data/repositories.py` defines abstract interfaces for applicants, loan applications and documents. `src/data/sqlite.py` implements them with the standard-library `sqlite3`, storing each entity as a JSON document beside its lookup columns. No ORM. Services depend only on the interfaces.
+- **Configuration:** `DATABASE_PATH` is added to the existing `Settings` (default `data/loan_poc.sqlite3`; `:memory:` allowed for tests). SQLite files are git-ignored.
+- **Errors:** `src/common/exceptions.py` has seven lightweight errors (`ApplicationError` base, `ValidationError`, `NotFoundError`, `DocumentProcessingError`, `DataAccessError`, `PolicyError`, `ExternalServiceError`). Storage and future provider errors are translated into these; `user_message` never carries raw provider text.
+- **Services:** `LoanApplicationService`, `DocumentService`, `PolicyService` and `UnderwritingService` are constructed with repositories; `create_services()` in `src/services/factory.py` is the single place that wires them from configuration, and the UI should call only that.
+- **Deviation from `architecture.md`:** the foundation services raise typed errors instead of returning a `ServiceResult`. The result object (status, warnings, requires_human_review) is introduced with the first multi-step service that can partially succeed (Prompt 3 onward).
+- **Enum names:** `LoanStatus` and `InconsistencySeverity` replace the draft names `ApplicationStatus` and `Severity`. `RiskIndicator` reuses `InconsistencySeverity` as the shared scale.
+- **Page numbers:** evidence page numbers are 1-based (0 and negative values are rejected).
+
+**Service input guards (Prompt 2).** Services accept only validated domain models and non-blank string ids (`src/services/_validation.py`). Anything else raises `ValidationError` before touching a repository, so callers never see `AttributeError`, `TypeError` or Pydantic errors. Enum arguments may be given as members or their text values.
+
+## ADR-015: `src/` never imports `app/`
+- **Context:** The quality check found a package-level loop: `app.bootstrap` imported `src.services`, while `src.data` and `src.services` imported `app.config` for one constant and a type.
+- **Decision:** The shared constant moved to `src/common/constants.py`. `create_services` takes a plain `database_path`; `app/bootstrap.py` resolves it from `Settings`. A test now fails if any `src` package imports `app`.
+- **Consequences:** The dependency graph is a tree (`app` -> `src.services` -> `src.data` -> `src.domain`, with `src.common` as a leaf). The architecture is otherwise unchanged.

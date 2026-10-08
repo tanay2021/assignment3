@@ -129,3 +129,6 @@ A healthy environment should show:
 
 ## Important note
 This setup is intentionally minimal and platform-aware. Docker is not required for the local POC foundation.
+
+## Optional: database location
+The application stores loan records in SQLite. By default the file is `data/loan_poc.sqlite3` (git-ignored). To change it, set `DATABASE_PATH` in `.env`. No OpenAI API key is needed at this stage.

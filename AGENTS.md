@@ -27,6 +27,15 @@ Project: Intelligent Loan Underwriting Assistant (BFSI POC). Read `docs/architec
 - Label output as `extracted`, `calculated` or `ai_generated`.
 - When evidence is missing, conflicting or unverified, set `requires_human_review`. Say "not found" rather than guess.
 
+## Data model design principles
+- Domain models (`src/domain/`) import only Pydantic and the standard library basics. They never import Streamlit, OpenAI, ChromaDB, LangChain, databases, logging or the filesystem.
+- Business rules live in services and the loan/policies layers, never in the UI. AI logic lives outside the domain models; models only validate data integrity (shape and sanity), not approval rules.
+- Use explicit types. No `Any`, no untyped dictionaries where a small model fits.
+- Keep models small and cohesive (at most 12 fields). Split instead of growing a "god object". New loan facts are new `field_name` values on `ExtractedInformation`, not new attributes.
+- Do not add abstractions until a second use exists. Repository interfaces are the exception because the architecture requires swappable persistence.
+- Write code so a new developer or coding agent can understand it from the file alone: short modules, clear names, a one-line docstring on every model.
+- `tests/unit/domain/test_design_principles.py` and `tests/unit/test_architecture.py` enforce these rules. Do not weaken them to make a change pass; write an ADR first.
+
 ## Testing
 - Every feature has tests. Follow BUILD -> TEST -> VERIFY -> MOVE FORWARD.
 - Run the full suite (`.venv\Scripts\python.exe -m pytest`) after each implementation and report the real result. Do not claim success if tests fail.

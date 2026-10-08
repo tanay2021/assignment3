@@ -6,7 +6,7 @@ Logical schemas only. Prompt 2 converts them into Python models in `src/domain/`
 - `DocumentType`: application, income, employment, bank_statement, property, policy, unknown
 - `DocumentStatus`: ingested, unreadable, empty, unsupported
 - `Provenance`: extracted | calculated | ai_generated
-- `Severity`: low, medium, high
+- `InconsistencySeverity`: info, low, medium, high
 - `ReviewStatus`: open, needs_follow_up, resolved, accepted
 - `Confidence`: high, medium, low (qualitative, not a numeric probability)
 
@@ -95,7 +95,7 @@ Logical schemas only. Prompt 2 converts them into Python models in `src/domain/`
 | values | list[{value, evidence}] | at least two sides, each with evidence |
 | difference | str? | calculated by code, Provenance = calculated |
 | explanation | str? | AI text, Provenance = ai_generated |
-| severity | Severity | |
+| severity | InconsistencySeverity | |
 | review_status | ReviewStatus | |
 | reviewer_note | str? | |
 
@@ -132,3 +132,21 @@ Logical schemas only. Prompt 2 converts them into Python models in `src/domain/`
 2. Calculated values never come from an LLM.
 3. `UnderwritingSummary.decision` is always "pending underwriter".
 4. A missing or conflicting source sets `requires_human_review = true`.
+
+## Implementation status (Prompt 2)
+The contracts above are implemented as Pydantic models in `src/domain/`. The Prompt 2 specification refined some names, and the code is the source of truth where they differ:
+
+| Logical contract | Implemented as | Differences from the logical text above |
+|---|---|---|
+| LoanApplication | `LoanApplication` | `loan_id` is `application_id`; fields are `loan_type`, `requested_amount`, `property_value`, `application_date`, `status`. No decision fields (`LoanStatus.DECISION_RECORDED` only records that a human decided) |
+| Applicant | `Applicant` | adds `date_of_birth`, `annual_income`, `other_income`; `existing_liabilities` is the total monthly obligation |
+| Document | `Document` | `source_reference` (path or locator), `processing_status`, `metadata` |
+| DocumentEvidence | `DocumentEvidence` (frozen) | adds `source_reference`; needs a `snippet` or `extracted_value` |
+| ExtractedInformation | `ExtractedInformation` | `value` is always the raw text; `normalized_value` is a typed number, date or flag (a JSON round trip must not change `value`); `application_id`; `confidence` is optional and qualitative, `None` unless a defined rule sets it |
+| PolicyDocument | `PolicyDocument` | `source`, `metadata` |
+| PolicyQuery | `PolicyQuery` + `ResponseRequirements` | `requested_context` replaces `scope`; no `query_id` |
+| Inconsistency | `Inconsistency` | `source_a`/`source_b` are `DocumentEvidence`; MEDIUM and HIGH must require human review |
+| UnderwritingSummary | `UnderwritingSummary` | `decision` is the literal `pending_underwriter` |
+| AIResponse | `AIResponse` | **no `confidence` field**, because no defined basis exists yet; OK responses require evidence; NO_EVIDENCE and FAILED require human review |
+
+ADR-012 (qualitative confidence) still applies to `ExtractedInformation`, but `AIResponse` carries no confidence until a calculation method is defined.

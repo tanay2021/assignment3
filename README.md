@@ -4,7 +4,7 @@
 The Intelligent Loan Underwriting Assistant is a BFSI proof of concept designed to support underwriters by organizing loan-related information, comparing documents, and highlighting inconsistencies while keeping the human reviewer in control of final decisions.
 
 ## Current POC stage
-This stage establishes the engineering foundation. AI functionality will be implemented incrementally in subsequent development stages.
+The engineering foundation, architecture blueprint, domain models, services and repositories are in place (Prompts 0 to 2). No AI functionality exists yet: document processing, RAG, policy reasoning and the Streamlit screens are added incrementally in later stages. See [docs/implementation_roadmap.md](docs/implementation_roadmap.md).
 
 ## Technology stack
 - Python 3.11.x
@@ -19,37 +19,50 @@ This stage establishes the engineering foundation. AI functionality will be impl
 - python-dotenv (environment configuration)
 - Python logging (structured application logging)
 
+## Application architecture
+Layers depend only downward. The UI never touches data or AI code directly.
+```text
+app/ui  ->  app/bootstrap  ->  src/services  ->  src/data  ->  src/domain
+                |                   |                |
+            app/config          src/common <---------+   (shared errors and constants)
+```
+| Layer | Location | Responsibility |
+|---|---|---|
+| Presentation | `app/ui/` | Display and input only (placeholder Streamlit entry point) |
+| Startup | `app/bootstrap.py`, `app/config.py`, `app/logging_config.py` | Load configuration, set up logging, wire services |
+| Application services | `src/services/` | One service per use area; validate input; raise controlled errors |
+| Data access | `src/data/` | Repository interfaces and a SQLite implementation |
+| Domain models | `src/domain/` | Pydantic data contracts, enums, integrity validation |
+| Shared | `src/common/` | Application exceptions and constants |
+| Future capabilities | `src/documents/`, `src/rag/`, `src/loan/`, `src/policies/` | Document intelligence, RAG, loan rules, policy reasoning (later prompts) |
+
+Full design: [docs/architecture.md](docs/architecture.md). What is implemented today: [docs/domain_model_implementation.md](docs/domain_model_implementation.md).
+
+## Domain model layer
+`src/domain/` holds small Pydantic models for Applicant, LoanApplication, Document, DocumentEvidence, ExtractedInformation, PolicyDocument, PolicyQuery, Inconsistency, UnderwritingSummary and AIResponse, plus controlled enums. Models check data integrity (non-empty ids, non-negative amounts, valid enum values, evidence for AI claims). They contain no underwriting rules, no AI code and no UI code. An underwriting summary can only say `pending_underwriter`; the human makes every loan decision.
+
 ## Project structure
 ```text
 loan-processing-ai-poc/
 ├── app/
-│   ├── __init__.py
-│   ├── config.py
+│   ├── bootstrap.py          application initialization
+│   ├── config.py             settings (the only place environment variables are read)
+│   ├── logging_config.py
 │   ├── healthcheck.py
-│   └── logging_config.py
+│   └── ui/                   placeholder Streamlit entry point
 ├── src/
-│   ├── __init__.py
-│   ├── documents/
-│   ├── rag/
-│   ├── loan/
-│   ├── policies/
-│   └── services/
+│   ├── common/               exceptions, constants
+│   ├── domain/               models and enums
+│   ├── data/                 repository interfaces, SQLite implementation
+│   ├── services/             application services and wiring
+│   ├── documents/  rag/  loan/  policies/    reserved for later prompts
 ├── tests/
-│   ├── __init__.py
-│   ├── unit/
+│   ├── unit/                 domain, common, data, services, architecture
 │   └── integration/
-├── data/
-│   ├── sample_documents/
-│   └── sample_policies/
-├── logs/
-├── docs/
-├── .env.example
-├── .gitignore
-├── requirements.txt
-├── pytest.ini
-├── README.md
-├── SETUP.md
-├── run.py
+├── data/                     sample_documents/, sample_policies/ (synthetic only)
+├── docs/                     architecture and design documents
+├── AGENTS.md                 rules for all coding work
+├── .env.example  requirements.txt  pytest.ini  run.py  README.md  SETUP.md
 └── .venv/
 ```
 
@@ -88,8 +101,11 @@ pip install -r requirements.txt
 
 ## Run tests
 ```bash
-pytest
+pytest                         # all tests (offline, no API key needed)
+pytest tests/unit/domain       # one area
+pytest -k repository           # by name
 ```
+On Windows, if `pytest` is not on your PATH, use `.\.venv\Scripts\python.exe -m pytest`. Tests use in-memory or temporary databases and never touch real data.
 
 ## Run the health check
 ```bash
